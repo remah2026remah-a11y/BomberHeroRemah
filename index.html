@@ -13,7 +13,7 @@
             -webkit-user-select: none;
             margin: 0;
             padding: 0;
-            touch-action: manipulation;
+            touch-action: none;
         }
 
         body, html {
@@ -198,9 +198,9 @@
         /* Mobile Controls */
         #touch-controls {
             position: absolute;
-            bottom: 20px;
+            bottom: max(14px, env(safe-area-inset-bottom));
             width: 100%;
-            padding: 0 20px;
+            padding: 0 max(16px, env(safe-area-inset-left)) 0 max(16px, env(safe-area-inset-right));
             display: none;
             justify-content: space-between;
             align-items: flex-end;
@@ -209,18 +209,18 @@
         }
 
         .dpad-container {
-            width: 150px;
-            height: 150px;
+            width: 174px;
+            height: 174px;
             position: relative;
             pointer-events: auto;
         }
 
         .dpad-btn {
             position: absolute;
-            width: 48px;
-            height: 48px;
+            width: 58px;
+            height: 58px;
             background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.32);
             border-radius: 12px;
             display: flex;
             justify-content: center;
@@ -231,10 +231,10 @@
         }
 
         .dpad-btn:active { background: rgba(255, 0, 85, 0.5); }
-        .dpad-up { top: 0; left: 51px; }
-        .dpad-down { bottom: 0; left: 51px; }
-        .dpad-left { top: 51px; left: 0; }
-        .dpad-right { top: 51px; right: 0; }
+        .dpad-up { top: 0; left: 58px; }
+        .dpad-down { bottom: 0; left: 58px; }
+        .dpad-left { top: 58px; left: 0; }
+        .dpad-right { top: 58px; right: 0; }
 
         .action-btns {
             display: flex;
@@ -243,8 +243,8 @@
         }
 
         .action-btn {
-            width: 70px;
-            height: 70px;
+            width: 82px;
+            height: 82px;
             border-radius: 50%;
             background: linear-gradient(135deg, #ff0055, #ff5500);
             border: 2px solid rgba(255,255,255,0.4);
@@ -310,9 +310,26 @@
         /* Responsive Settings */
         @media (max-width: 768px) {
             #touch-controls { display: flex; }
+            #hud { padding: max(8px, env(safe-area-inset-top)) 8px 0; gap: 5px; flex-wrap: wrap; }
+            .hud-card { padding: 6px 9px; font-size: .78rem; gap: 5px; }
+            .hud-icon { font-size: 1rem; }
+            #powerup-bar { bottom: max(8px, env(safe-area-inset-bottom)); gap: 4px; max-width: 58%; flex-wrap: wrap; justify-content: center; }
+            .badge { padding: 4px 7px; font-size: .68rem; }
             h1.game-title { font-size: 2.2rem; }
             .glass-panel { padding: 20px; }
             .instructions-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 430px) {
+            .dpad-container { transform: scale(.86); transform-origin: bottom left; margin-bottom: -22px; }
+            .action-btn { width: 70px; height: 70px; font-size: .82rem; }
+            .action-btns { gap: 8px; }
+            #hud-level-name { display: none; }
+        }
+        @media (max-height: 500px) and (orientation: landscape) {
+            #touch-controls { bottom: 8px; }
+            .dpad-container { transform: scale(.72); transform-origin: bottom left; margin-bottom: -48px; }
+            .action-btn { width: 62px; height: 62px; }
+            #powerup-bar { display: none; }
         }
     </style>
 </head>
@@ -1024,10 +1041,20 @@
             const bindTouch = (id, keyName, actionFn) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; if (actionFn) actionFn(); });
-                el.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
-                el.addEventListener('mousedown', (e) => { keys[keyName] = true; if (actionFn) actionFn(); });
-                el.addEventListener('mouseup', (e) => { keys[keyName] = false; });
+                const release = (e) => {
+                    e.preventDefault();
+                    keys[keyName] = false;
+                    if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
+                };
+                el.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    el.setPointerCapture?.(e.pointerId);
+                    keys[keyName] = true;
+                    if (actionFn) actionFn();
+                }, { passive: false });
+                el.addEventListener('pointerup', release, { passive: false });
+                el.addEventListener('pointercancel', release, { passive: false });
+                el.addEventListener('pointerleave', (e) => { if (e.buttons === 0) release(e); }, { passive: false });
             };
 
             bindTouch('btn-up', 'up');
