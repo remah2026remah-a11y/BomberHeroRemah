@@ -318,7 +318,7 @@
 </head>
 <body>
 
-    <div id="canvas-container"></div>
+    <div id="canvas-container" tabindex="0" aria-label="Bomber Hero game area"></div>
 
     <div id="screen-flash"></div>
 
@@ -992,7 +992,9 @@
         function setupInputListeners() {
             window.addEventListener('keydown', e => {
                 if (gameState !== 'PLAYING') return;
-                const code = e.code;
+                // Use both `code` and `key` because some mobile keyboards and
+                // embedded browsers do not populate KeyboardEvent.code.
+                const code = e.code || e.key;
                 const isMovementKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code);
                 if (isMovementKey || code === 'Space') e.preventDefault();
                 if (code === 'ArrowUp' || code === 'KeyW') keys.up = true;
@@ -1004,7 +1006,7 @@
             });
 
             window.addEventListener('keyup', e => {
-                const code = e.code;
+                const code = e.code || e.key;
                 if (code === 'ArrowUp' || code === 'KeyW') keys.up = false;
                 if (code === 'ArrowDown' || code === 'KeyS') keys.down = false;
                 if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
@@ -1523,6 +1525,7 @@
 
         function startGame(mode) {
             audio.init();
+            document.getElementById('canvas-container').focus();
             gameMode = mode;
             currentLevelIndex = 0;
             score = 0;
