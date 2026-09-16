@@ -992,21 +992,30 @@
         function setupInputListeners() {
             window.addEventListener('keydown', e => {
                 if (gameState !== 'PLAYING') return;
-                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
-                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
-                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
-                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
-                if (e.key === ' ' && !keys.bomb) { keys.bomb = true; plantBomb(); }
-                if ((e.key === 'e' || e.key === 'E' || e.key === 'Shift') && !keys.detonate) { keys.detonate = true; detonateRemoteBombs(); }
+                const code = e.code;
+                const isMovementKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code);
+                if (isMovementKey || code === 'Space') e.preventDefault();
+                if (code === 'ArrowUp' || code === 'KeyW') keys.up = true;
+                if (code === 'ArrowDown' || code === 'KeyS') keys.down = true;
+                if (code === 'ArrowLeft' || code === 'KeyA') keys.left = true;
+                if (code === 'ArrowRight' || code === 'KeyD') keys.right = true;
+                if (code === 'Space' && !keys.bomb) { keys.bomb = true; plantBomb(); }
+                if ((code === 'KeyE' || code === 'ShiftLeft' || code === 'ShiftRight') && !keys.detonate) { keys.detonate = true; detonateRemoteBombs(); }
             });
 
             window.addEventListener('keyup', e => {
-                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
-                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
-                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
-                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
-                if (e.key === ' ') keys.bomb = false;
-                if (e.key === 'e' || e.key === 'E' || e.key === 'Shift') keys.detonate = false;
+                const code = e.code;
+                if (code === 'ArrowUp' || code === 'KeyW') keys.up = false;
+                if (code === 'ArrowDown' || code === 'KeyS') keys.down = false;
+                if (code === 'ArrowLeft' || code === 'KeyA') keys.left = false;
+                if (code === 'ArrowRight' || code === 'KeyD') keys.right = false;
+                if (code === 'Space') keys.bomb = false;
+                if (code === 'KeyE' || code === 'ShiftLeft' || code === 'ShiftRight') keys.detonate = false;
+            });
+
+            // If the browser window loses focus, never leave a direction stuck on.
+            window.addEventListener('blur', () => {
+                keys.up = keys.down = keys.left = keys.right = keys.bomb = keys.detonate = false;
             });
 
             // Touch / On-screen Buttons
@@ -1302,7 +1311,7 @@
                 player.mesh.rotation.y = angle;
 
                 // Procedural Walk Wobble Animation
-                const t = now * 0.01;
+                const t = gameClock * 10;
                 player.mesh.userData.footL.position.z = Math.sin(t) * 0.15;
                 player.mesh.userData.footR.position.z = -Math.sin(t) * 0.15;
             }
@@ -1310,10 +1319,12 @@
 
         function canMoveTo(x, z) {
             const radius = 0.35 * GRID_SIZE;
-            const minC = Math.floor((x - radius) / GRID_SIZE);
-            const maxC = Math.floor((x + radius) / GRID_SIZE);
-            const minR = Math.floor((z - radius) / GRID_SIZE);
-            const maxR = Math.floor((z + radius) / GRID_SIZE);
+            // Grid coordinates represent cell centers (0, 1.6, 3.2...), so offset
+            // the bounds by half a cell before converting world space to cells.
+            const minC = Math.floor((x - radius + GRID_SIZE / 2) / GRID_SIZE);
+            const maxC = Math.floor((x + radius + GRID_SIZE / 2) / GRID_SIZE);
+            const minR = Math.floor((z - radius + GRID_SIZE / 2) / GRID_SIZE);
+            const maxR = Math.floor((z + radius + GRID_SIZE / 2) / GRID_SIZE);
 
             for (let r = minR; r <= maxR; r++) {
                 for (let c = minC; c <= maxC; c++) {
